@@ -29,7 +29,19 @@ class DatabaseCustomerRepository(CustomerRepository):
         customers_model = db.session.execute(statement).scalars().all()
         return [self._to_domain(model) for model in customers_model]
 
-    def delete_by_id(self, id):
+    def update_all(self, id: uuid.UUID, customer: Customer):
+        customer_model: CustomerModel | None = db.session.get(CustomerModel, id)
+
+        if customer_model is None:
+            return None
+
+        customer_model.name = customer.name
+        customer_model.age = customer.age
+        customer_model.email = customer.email
+        db.session.commit()
+        return self._to_domain(customer_model)
+
+    def delete_by_id(self, id: uuid.UUID):
         customer_model: CustomerModel | None = db.session.get(CustomerModel, id)
 
         if customer_model is None:

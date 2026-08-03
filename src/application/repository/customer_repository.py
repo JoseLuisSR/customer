@@ -18,5 +18,9 @@ class CustomerRepository(ABC):
         pass
 
     @abstractmethod
+    def update_all(sefl, id: uuid.UUID, customer: Customer):
+        pass
+
+    @abstractmethod
     def delete_by_id(self, id: uuid.UUID):
         pass

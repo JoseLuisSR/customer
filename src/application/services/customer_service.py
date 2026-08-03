@@ -41,6 +41,19 @@ class CustomerService:
             for customer in customers
         ]
 
+    def update_all(self, id: uuid.UUID, customer_rqst: CustomerRqst):
+        customer_update: Customer = Customer.create(
+            customer_rqst.name, customer_rqst.age, customer_rqst.email
+        )
+        customer: Customer = self.repository.update_all(id, customer_update)
+
+        if customer is None:
+            raise CustomerNotFoundException(id)
+
+        return CustomerRsps(
+            id=customer.id, name=customer.name, age=customer.age, email=customer.email
+        )
+
     def delete_by_id(self, id: uuid.UUID):
         customer: Customer = self.repository.delete_by_id(id)
 
