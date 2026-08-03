@@ -1,6 +1,6 @@
 from flask import Flask
 
-from src.config.config import Config
+from src.infrastructure.persistence.config import Config
 from src.infrastructure.persistence.database import db
 from src.infrastructure.web.customer_routes import customer_bp
 from src.infrastructure.web.error_handler import register_exception_handlers
