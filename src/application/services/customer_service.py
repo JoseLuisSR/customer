@@ -3,7 +3,7 @@ import uuid
 from src.application.dto.customer_dto import CustomerRqst, CustomerRsps
 from src.application.repository.customer_repository import CustomerRepository
 from src.domain.customer import Customer
-from src.exception.customer_exception import CustomerNotFoundException
+from src.exception.customer_exception import CustomerNotFoundError
 
 
 class CustomerService:
@@ -23,7 +23,7 @@ class CustomerService:
         customer: Customer = self.repository.get_by_id(id)
 
         if customer is None:
-            raise CustomerNotFoundException(id)
+            raise CustomerNotFoundError(id)
 
         return CustomerRsps(
             id=customer.id, name=customer.name, age=customer.age, email=customer.email
@@ -48,7 +48,7 @@ class CustomerService:
         customer: Customer = self.repository.update_all(id, customer_update)
 
         if customer is None:
-            raise CustomerNotFoundException(id)
+            raise CustomerNotFoundError(id)
 
         return CustomerRsps(
             id=customer.id, name=customer.name, age=customer.age, email=customer.email
@@ -58,7 +58,7 @@ class CustomerService:
         customer: Customer = self.repository.delete_by_id(id)
 
         if customer is None:
-            raise CustomerNotFoundException(id)
+            raise CustomerNotFoundError(id)
 
         return CustomerRsps(
             id=customer.id, name=customer.name, age=customer.age, email=customer.email

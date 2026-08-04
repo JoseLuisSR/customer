@@ -6,7 +6,7 @@ from flask import Blueprint, Response, request
 from src.application.dto.customer_dto import CustomerRqst
 from src.application.repository.customer_repository import CustomerRepository
 from src.application.services.customer_service import CustomerService
-from src.exception.customer_exception import InvalidUUIDException
+from src.exception.customer_exception import InvalidUUIDError
 from src.infrastructure.persistence.database_customer_repository import (
     DatabaseCustomerRepository,
 )
@@ -56,4 +56,4 @@ def parse_uuid(value: str) -> uuid.UUID:
     try:
         return uuid.UUID(value)
     except (ValueError, AttributeError, TypeError) as error:
-        raise InvalidUUIDException(value) from error
+        raise InvalidUUIDError(value) from error

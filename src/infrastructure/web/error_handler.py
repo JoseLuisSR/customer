@@ -3,12 +3,14 @@ from http import HTTPStatus
 from flask import Flask, jsonify
 
 from src.exception.customer_exception import (
-    CustomerNotFoundException,
-    InvalidUUIDException,
+    CustomerNotFoundError,
+    CustomerWithIDAlreadyExistsError,
+    InvalidUUIDError,
+    PersistenceUnavailableError,
 )
 
 
-def handle_customer_not_found(exception: CustomerNotFoundException):
+def handle_customer_not_found_error(exception: CustomerNotFoundError):
     return jsonify(
         {
             "error": {
@@ -20,7 +22,7 @@ def handle_customer_not_found(exception: CustomerNotFoundException):
     ), HTTPStatus.NOT_FOUND
 
 
-def handle_invalid_uuid(exception: InvalidUUIDException):
+def handle_invalid_uuid_error(exception: InvalidUUIDError):
     return jsonify(
         {
             "error": {
@@ -32,7 +34,33 @@ def handle_invalid_uuid(exception: InvalidUUIDException):
     ), HTTPStatus.BAD_REQUEST
 
 
+def handle_customer_with_uuid_already_exists_error(
+    exception: CustomerWithIDAlreadyExistsError,
+):
+    return jsonify(
+        {
+            "error": {
+                "code": "CUSTOMER_WITH_ID_ALREADY_EXISTS",
+                "message": str(exception),
+                "uuid": str(exception.id),
+            }
+        }
+    ), HTTPStatus.CONFLICT
+
+
+def handle_persistence_unavailable_error(exception: PersistenceUnavailableError):
+    return jsonify(
+        {"error": {"code": "SERVICE_UNAVAILABLE", "message": str(exception)}}
+    ), HTTPStatus.SERVICE_UNAVAILABLE
+
+
 def register_exception_handlers(app: Flask) -> None:
 
-    app.register_error_handler(CustomerNotFoundException, handle_customer_not_found)
-    app.register_error_handler(InvalidUUIDException, handle_invalid_uuid)
+    app.register_error_handler(CustomerNotFoundError, handle_customer_not_found_error)
+    app.register_error_handler(InvalidUUIDError, handle_invalid_uuid_error)
+    app.register_error_handler(
+        CustomerWithIDAlreadyExistsError, handle_customer_with_uuid_already_exists_error
+    )
+    app.register_error_handler(
+        PersistenceUnavailableError, handle_persistence_unavailable_error
+    )
