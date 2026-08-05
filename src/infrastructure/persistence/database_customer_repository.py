@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 class DatabaseCustomerRepository(CustomerRepository):
     def create(self, customer: Customer):
-        customer_model = CustomerModel(
-            id=customer.id, name=customer.name, age=customer.age, email=customer.email
-        )
+        customer_model = self._to_model(customer)
 
         try:
             db.session.add(customer_model)
@@ -42,7 +40,7 @@ class DatabaseCustomerRepository(CustomerRepository):
             raise PersistenceUnavailableError() from error
 
         if customer_model is None:
-            return None
+            raise CustomerNotFoundError(id)
 
         return self._to_domain(customer_model)
 
@@ -98,6 +96,12 @@ class DatabaseCustomerRepository(CustomerRepository):
     def _to_domain(model: CustomerModel) -> Customer:
         return Customer.restore(
             id=model.id, name=model.name, age=model.age, email=model.email
+        )
+
+    @staticmethod
+    def _to_model(customer: Customer) -> CustomerModel:
+        return CustomerModel(
+            id=customer.id, name=customer.name, age=customer.age, email=customer.email
         )
 
     def _handle_error(self, error: Exception, operation: str):

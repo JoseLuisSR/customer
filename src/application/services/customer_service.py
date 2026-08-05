@@ -3,7 +3,6 @@ import uuid
 from src.application.dto.customer_dto import CustomerRqst, CustomerRsps
 from src.application.repository.customer_repository import CustomerRepository
 from src.domain.customer import Customer
-from src.exception.customer_exception import CustomerNotFoundError
 
 
 class CustomerService:
@@ -21,10 +20,6 @@ class CustomerService:
 
     def get_by_id(self, id: uuid.UUID):
         customer: Customer = self.repository.get_by_id(id)
-
-        if customer is None:
-            raise CustomerNotFoundError(id)
-
         return CustomerRsps(
             id=customer.id, name=customer.name, age=customer.age, email=customer.email
         )
