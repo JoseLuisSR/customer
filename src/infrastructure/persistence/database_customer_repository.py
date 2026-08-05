@@ -1,12 +1,13 @@
 import logging
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import Result, delete, select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.application.repository.customer_repository import CustomerRepository
 from src.domain.customer import Customer
 from src.exception.customer_exception import (
+    CustomerNotFoundError,
     CustomerWithIDAlreadyExistsError,
     PersistenceUnavailableError,
 )
@@ -55,26 +56,43 @@ class DatabaseCustomerRepository(CustomerRepository):
             raise SQLAlchemyError(error)
 
     def update_all(self, id: uuid.UUID, customer: Customer):
-        customer_model: CustomerModel | None = db.session.get(CustomerModel, id)
 
-        if customer_model is None:
-            return None
+        statement = (
+            update(CustomerModel)
+            .where(CustomerModel.id == id)
+            .values(name=customer.name, age=customer.age, email=customer.email)
+            .returning(CustomerModel.id)
+        )
 
-        customer_model.name = customer.name
-        customer_model.age = customer.age
-        customer_model.email = customer.email
-        db.session.commit()
-        return self._to_domain(customer_model)
+        try:
+            result: Result = db.session.execute(statement)
+            db.session.commit()
+
+            if result.scalar_one_or_none() is None:
+                raise CustomerNotFoundError(id)
+
+        except SQLAlchemyError as error:
+            self._handle_error(error, "update_all")
+            raise PersistenceUnavailableError() from error
 
     def delete_by_id(self, id: uuid.UUID):
-        customer_model: CustomerModel | None = db.session.get(CustomerModel, id)
 
-        if customer_model is None:
-            return None
+        statement = (
+            delete(CustomerModel)
+            .where(CustomerModel.id == id)
+            .returning(CustomerModel.id)
+        )
 
-        db.session.delete(customer_model)
-        db.session.commit()
-        return self._to_domain(customer_model)
+        try:
+            result = db.session.execute(statement)
+            db.session.commit()
+
+            if result.scalar_one_or_none() is None:
+                raise CustomerNotFoundError(id)
+
+        except SQLAlchemyError as error:
+            self._handle_error(error, "delete_by_id")
+            raise PersistenceUnavailableError() from error
 
     @staticmethod
     def _to_domain(model: CustomerModel) -> Customer:
@@ -84,6 +102,7 @@ class DatabaseCustomerRepository(CustomerRepository):
 
     def _handle_error(self, error: Exception, operation: str):
         db.session.rollback()
+        print(f"The error name is {type(error).__name__} and error is {error}")
         logger.error(
             "SQLAlchemy error",
             extra={
