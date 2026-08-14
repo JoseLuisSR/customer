@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from flask import Flask, jsonify
+from flask_migrate import Migrate
 
 from src.infrastructure.logging.config import configure_logging
 from src.infrastructure.persistence.config import Config
@@ -23,6 +24,7 @@ def create_app() -> Flask:
     app.register_blueprint(address_bp)
     app.config.from_object(Config)
     db.init_app(app)
+    Migrate(app, db)
     register_exception_handlers(app)
     register_request_logging(app)
     return app
