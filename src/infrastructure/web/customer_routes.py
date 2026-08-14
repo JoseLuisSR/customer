@@ -6,10 +6,10 @@ from flask import Blueprint, Response, request
 from src.application.dto.customer_dto import CustomerRqst
 from src.application.repository.customer_repository import CustomerRepository
 from src.application.services.customer_service import CustomerService
-from src.exception.customer_exception import InvalidUUIDError
 from src.infrastructure.persistence.database_customer_repository import (
     DatabaseCustomerRepository,
 )
+from src.infrastructure.web.uuid_parser import parse_uuid
 
 customer_bp = Blueprint("cusromer", __name__, url_prefix="/api/v1/customers")
 customer_repository: CustomerRepository = DatabaseCustomerRepository()
@@ -50,10 +50,3 @@ def delete_by_id(value: str):
     customer_id: uuid.UUID = parse_uuid(value)
     customer_service.delete_by_id(customer_id)
     return Response(status=HTTPStatus.NO_CONTENT)
-
-
-def parse_uuid(value: str) -> uuid.UUID:
-    try:
-        return uuid.UUID(value)
-    except (ValueError, AttributeError, TypeError) as error:
-        raise InvalidUUIDError(value) from error

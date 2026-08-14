@@ -2,6 +2,10 @@ from http import HTTPStatus
 
 from flask import Flask, jsonify
 
+from src.exception.address_exception import (
+    AddressNotFoundError,
+    MaxAddressesPerCustomerError,
+)
 from src.exception.customer_exception import (
     CustomerNotFoundError,
     CustomerWithIDAlreadyExistsError,
@@ -54,6 +58,32 @@ def handle_persistence_unavailable_error(exception: PersistenceUnavailableError)
     ), HTTPStatus.SERVICE_UNAVAILABLE
 
 
+def handle_address_not_found_error(exception: AddressNotFoundError):
+    return jsonify(
+        {
+            "error": {
+                "code": "ADDRESS_NOT_FOUND",
+                "message": str(exception),
+                "customer_id": str(exception.customer_id),
+                "address_id": str(exception.address_id),
+            }
+        }
+    ), HTTPStatus.NOT_FOUND
+
+
+def handle_max_addresses_per_customer_error(exception: MaxAddressesPerCustomerError):
+    return jsonify(
+        {
+            "error": {
+                "code": "MAX_ADDRESSES_PER_CUSTOMER",
+                "message": str(exception),
+                "customer_id": str(exception.customer_id),
+                "limit": exception.limit,
+            }
+        }
+    ), HTTPStatus.CONFLICT
+
+
 def register_exception_handlers(app: Flask) -> None:
 
     app.register_error_handler(CustomerNotFoundError, handle_customer_not_found_error)
@@ -63,4 +93,8 @@ def register_exception_handlers(app: Flask) -> None:
     )
     app.register_error_handler(
         PersistenceUnavailableError, handle_persistence_unavailable_error
+    )
+    app.register_error_handler(AddressNotFoundError, handle_address_not_found_error)
+    app.register_error_handler(
+        MaxAddressesPerCustomerError, handle_max_addresses_per_customer_error
     )
