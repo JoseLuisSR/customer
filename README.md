@@ -1,16 +1,17 @@
 # Customers
 
-API Flask para gestionar customers y sus addresses, con arquitectura hexagonal
-(dominio / aplicación / infraestructura), SQLAlchemy 2.0 y Pydantic.
+A Flask API to manage customers and their addresses. It uses a hexagonal
+architecture (domain / application / infrastructure), SQLAlchemy 2.0, and
+Pydantic.
 
-## Requisitos
+## Requirements
 
 - [uv](https://docs.astral.sh/uv/)
-- Docker y Docker Compose
+- Docker and Docker Compose
 
-## Configuración
+## Configuration
 
-Variables de entorno en `.env` (no versionado):
+Environment variables in `.env` (not versioned):
 
 ```
 POSTGRES_DB=
@@ -20,82 +21,82 @@ POSTGRES_HOST=
 POSTGRES_PORT=
 ```
 
-## Levantar el proyecto
+## Running the project
 
 ```
 docker compose up --build
 ```
 
-Esto levanta, en orden: `postgres` (con healthcheck), `migrate` (aplica las
-migraciones de base de datos pendientes y termina) y `app` (arranca solo si
-`migrate` terminó exitosamente).
+This starts, in order: `postgres` (with a healthcheck), `migrate` (applies
+pending database migrations and then stops), and `app` (starts only if
+`migrate` finished successfully).
 
-## Migraciones de base de datos
+## Database migrations
 
-El esquema de base de datos se versiona con [Flask-Migrate](https://flask-migrate.readthedocs.io/)
-(Alembic) en `migrations/`. **No existe `db.create_all()`**: las tablas solo
-se crean/actualizan a través de migraciones.
+The database schema is versioned with [Flask-Migrate](https://flask-migrate.readthedocs.io/)
+(Alembic) in `migrations/`. **There is no `db.create_all()`**: tables are
+only created or updated through migrations.
 
-### Aplicarlas
+### Applying migrations
 
-En `docker compose up`, el servicio `migrate` corre `flask db upgrade`
-automáticamente antes de que arranque `app`. No requiere ningún paso manual.
+When you run `docker compose up`, the `migrate` service runs `flask db
+upgrade` automatically before `app` starts. No manual step is needed.
 
-### Generar una migración nueva
+### Creating a new migration
 
-Cuando se agregue o modifique un modelo en `src/infrastructure/persistence/`:
+When you add or change a model in `src/infrastructure/persistence/`:
 
-1. Levantar solo la base de datos: `docker compose up -d postgres`.
-2. Generar la migración contra esa base de datos, desde el host:
+1. Start only the database: `docker compose up -d postgres`.
+2. Generate the migration against that database, from your host machine:
    ```
-   FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db migrate -m "mensaje descriptivo"
+   FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db migrate -m "descriptive message"
    ```
-3. **Revisar a mano** el archivo generado en `migrations/versions/` — el
-   autogenerate de Alembic no siempre detecta bien constraints (`ondelete`,
-   índices, tipos), así que hay que confirmar que el DDL coincide exactamente
-   con el modelo de SQLAlchemy.
-4. Aplicarla localmente para probarla: `FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db upgrade`.
-5. Commitear el archivo de migración junto con el cambio de modelo.
+3. **Check the generated file by hand** in `migrations/versions/` — Alembic's
+   autogenerate does not always detect constraints correctly (`ondelete`,
+   indexes, types), so make sure the DDL matches the SQLAlchemy model
+   exactly.
+4. Apply it locally to test it: `FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db upgrade`.
+5. Commit the migration file together with the model change.
 
-### Agregar una entidad nueva
+### Adding a new entity
 
-Al agregar una entidad nueva (dominio, DTOs, puerto de repositorio, servicio,
-modelo de persistencia y rutas, siguiendo el patrón ya usado por `Customer` y
-`Address`), el último paso es generar y revisar su migración como se describe
-arriba, antes de dar la feature por completa.
+When you add a new entity (domain, DTOs, repository port, service,
+persistence model, and routes, following the same pattern already used by
+`Customer` and `Address`), the last step is to create and check its
+migration as explained above, before marking the feature as done.
 
 ## Tests
 
-La suite vive en `tests/`, en espejo con `src/` (`tests/domain/`,
+The test suite lives in `tests/`, and it mirrors `src/` (`tests/domain/`,
 `tests/application/dto/`, `tests/application/services/`,
 `tests/infrastructure/persistence/`, `tests/infrastructure/web/`).
 
-### Tests rápidos, sin base de datos
+### Fast tests, no database needed
 
-Los tests de `tests/domain/` y `tests/application/` (DTOs y servicios, este
-último con `pytest-mock`) no tocan la base de datos:
+The tests in `tests/domain/` and `tests/application/` (DTOs and services,
+the last one using `pytest-mock`) do not touch the database:
 
 ```
 uv run pytest tests/domain tests/application
 ```
 
-### Suite completa, con Postgres real
+### Full suite, with a real Postgres database
 
-Los tests de `tests/infrastructure/` (persistencia y rutas web) usan el
-mismo Postgres de `docker-compose.yaml`, no SQLite ni testcontainers, para
-ser representativos de tipos específicos de Postgres (`Uuid`, `ON DELETE
-CASCADE`). Antes de correrlos:
+The tests in `tests/infrastructure/` (persistence and web routes) use the
+same Postgres database from `docker-compose.yaml`, not SQLite or
+testcontainers, so they behave like Postgres in real use (`Uuid` type,
+`ON DELETE CASCADE`). Before running them:
 
-1. Levantar solo la base de datos: `docker compose up -d postgres`.
-2. Aplicar migraciones si hace falta:
+1. Start only the database: `docker compose up -d postgres`.
+2. Apply migrations if needed:
    `FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db upgrade`.
-3. Correr la suite completa (el fixture de sesión en `tests/conftest.py`
-   fuerza `POSTGRES_HOST=localhost` por defecto, ya que los tests corren en
-   el host, fuera de la red de `docker-compose`):
+3. Run the full suite (the session fixture in `tests/conftest.py` sets
+   `POSTGRES_HOST=localhost` by default, since the tests run on your host
+   machine, outside the `docker-compose` network):
    ```
    uv run pytest
    ```
 
-Cada test que usa la base de datos crea su propio `customer` y lo borra al
-finalizar (el cascade delete se encarga de sus `addresses`), así que la
-suite no deja filas residuales ni depende del orden de ejecución.
+Every test that uses the database creates its own `customer` and deletes it
+at the end (cascade delete takes care of its `addresses`), so the suite does
+not leave extra rows behind and does not depend on test order.
