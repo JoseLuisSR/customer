@@ -1,0 +1,52 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: customers
+      POSTGRES_PASSWORD: customers
+      POSTGRES_DB: customers
+    ports:
+      - "5432:5432"
+    volumes:
+      - customers_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customers -d customers"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos exclusiva para las pruebas de integración (Fase 6),
+  # aislada de `db` y expuesta en un puerto distinto para poder correr
+  # ambos servicios en simultáneo sin conflicto.
+  db_test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: customers_test
+      POSTGRES_PASSWORD: customers_test
+      POSTGRES_DB: customers_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customers_test -d customers_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://customers:customers@db:5432/customers
+      FLASK_ENV: production
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  customers_db_data:
