@@ -63,3 +63,39 @@ Al agregar una entidad nueva (dominio, DTOs, puerto de repositorio, servicio,
 modelo de persistencia y rutas, siguiendo el patrón ya usado por `Customer` y
 `Address`), el último paso es generar y revisar su migración como se describe
 arriba, antes de dar la feature por completa.
+
+## Tests
+
+La suite vive en `tests/`, en espejo con `src/` (`tests/domain/`,
+`tests/application/dto/`, `tests/application/services/`,
+`tests/infrastructure/persistence/`, `tests/infrastructure/web/`).
+
+### Tests rápidos, sin base de datos
+
+Los tests de `tests/domain/` y `tests/application/` (DTOs y servicios, este
+último con `pytest-mock`) no tocan la base de datos:
+
+```
+uv run pytest tests/domain tests/application
+```
+
+### Suite completa, con Postgres real
+
+Los tests de `tests/infrastructure/` (persistencia y rutas web) usan el
+mismo Postgres de `docker-compose.yaml`, no SQLite ni testcontainers, para
+ser representativos de tipos específicos de Postgres (`Uuid`, `ON DELETE
+CASCADE`). Antes de correrlos:
+
+1. Levantar solo la base de datos: `docker compose up -d postgres`.
+2. Aplicar migraciones si hace falta:
+   `FLASK_APP=main:app POSTGRES_HOST=localhost uv run flask db upgrade`.
+3. Correr la suite completa (el fixture de sesión en `tests/conftest.py`
+   fuerza `POSTGRES_HOST=localhost` por defecto, ya que los tests corren en
+   el host, fuera de la red de `docker-compose`):
+   ```
+   uv run pytest
+   ```
+
+Cada test que usa la base de datos crea su propio `customer` y lo borra al
+finalizar (el cascade delete se encarga de sus `addresses`), así que la
+suite no deja filas residuales ni depende del orden de ejecución.
